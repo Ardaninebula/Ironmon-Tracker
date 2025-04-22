@@ -799,12 +799,14 @@ function GachaMonData.updateMainScreenViewedGachaMon()
 	if not GachaMonData.isCompatibleWithEmulator() then
 		return
 	end
+
 	local viewedPokemon = Battle.getViewedPokemon(true)
 	if not viewedPokemon then
 		GachaMonData.playerViewedMon = nil
 		GachaMonData.playerViewedInitialStars = 0
 		return
 	end
+
 	local prevMon = GachaMonData.playerViewedMon
 	-- If new or different mon or different level, recalc
 	local needsRecalculating = not prevMon or (prevMon.PokemonId ~= viewedPokemon.pokemonID) or (prevMon.Level ~= viewedPokemon.level)
@@ -819,7 +821,7 @@ function GachaMonData.updateMainScreenViewedGachaMon()
 			end
 		end
 	end
-	-- Suppress debug messages when re-calculating here
+
 	if needsRecalculating then
 		GachaMonData.playerViewedMon = GachaMonData.convertPokemonToGachaMon(viewedPokemon)
 		-- Always reset the initial stars to original card; do this every time the mon gets rerolled (in case the mon changes)

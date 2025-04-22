@@ -23,7 +23,7 @@ PokemonData.Addresses = {
 	sizeofLevelUpLearnset = 4,
 	sizeofLevelUpMove = 2,
 	sizeofLevelUpMoveId = 9,
-	sizeofLevelUpMoveLv = 9,
+	sizeofLevelUpMoveLv = 7,
 }
 
 PokemonData.IsRand = {
