@@ -314,6 +314,43 @@ function GachaMonData.calculateRatingScore(gachamon, baseStats)
 			abilityRating = abilityRating + (RS.OtherAdjustments.PenaltyAbilitySandStreamUnsafe or 0)
 		end
 	end
+	if (gachamon.AbilityId or 0) == AbilityData.Values.ImmunityId then
+		local unhelpfulTypes = {
+			[PokemonData.Types.POISON] = true,
+			[PokemonData.Types.STEEL] = true,
+		}
+		-- Remove points gained from Immunity (can't be poisoned)
+		if unhelpfulTypes[pokemonTypes[1] or false] or unhelpfulTypes[pokemonTypes[2] or false] then
+			abilityRating = abilityRating - (RS.Abilities[AbilityData.Values.ImmunityId] or 0)
+		end
+	end
+	if (gachamon.AbilityId or 0) == AbilityData.Values.WaterVeilId then
+		local unhelpfulTypes = {
+			[PokemonData.Types.FIRE] = true,
+		}
+		-- Remove points gained from Water Veil (can't be burned)
+		if unhelpfulTypes[pokemonTypes[1] or false] or unhelpfulTypes[pokemonTypes[2] or false] then
+			abilityRating = abilityRating - (RS.Abilities[AbilityData.Values.WaterVeilId] or 0)
+		end
+	end
+	if (gachamon.AbilityId or 0) == AbilityData.Values.MagmaArmorId then
+		local unhelpfulTypes = {
+			[PokemonData.Types.ICE] = true,
+		}
+		-- Remove points gained from Magma Armor (can't be frozen)
+		if unhelpfulTypes[pokemonTypes[1] or false] or unhelpfulTypes[pokemonTypes[2] or false] then
+			abilityRating = abilityRating - (RS.Abilities[AbilityData.Values.MagmaArmorId] or 0)
+		end
+	end
+	if (gachamon.AbilityId or 0) == AbilityData.Values.LevitateId then
+		local unhelpfulTypes = {
+			[PokemonData.Types.FLYING] = true,
+		}
+		-- Remove points gained from Levitate (immune to ground moves)
+		if unhelpfulTypes[pokemonTypes[1] or false] or unhelpfulTypes[pokemonTypes[2] or false] then
+			abilityRating = abilityRating - (RS.Abilities[AbilityData.Values.LevitateId] or 0)
+		end
+	end
 	abilityRating = math.min(abilityRating, RS.CategoryMaximums.Ability or 999)
 	ratingTotal = ratingTotal + abilityRating
 
@@ -981,6 +1018,9 @@ function GachaMonData.tryAddToRecentMons(pokemon, fromTrainerPrize)
 		GachaMonData.DexData.NumSeen = GachaMonData.DexData.NumSeen + 1
 		GachaMonFileManager.saveGachaDexInfoToFile()
 	end
+
+	local shareCode = GachaMonData.getShareablyCode(gachamon)
+	EventHandler.triggerEvent(EventHandler.DefaultEvents.GE_GachaMonCapture.Key, shareCode)
 
 	return true
 end
