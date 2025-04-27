@@ -16,8 +16,14 @@ PokemonData.Addresses = {
 	offsetGenderRatio = 0x10,
 	offsetBaseFriendship = 0x12,
 	offsetAbilities = 0x16,
+	offsetLevelUpMoveId = 0x0,
+	offsetLevelUpMoveLv = 0x9,
 
 	sizeofExpYield = 1,
+	sizeofLevelUpLearnset = 4,
+	sizeofLevelUpMove = 2,
+	sizeofLevelUpMoveId = 9,
+	sizeofLevelUpMoveLv = 7,
 }
 
 PokemonData.IsRand = {
@@ -589,15 +595,15 @@ function PokemonData.readLevelUpMoves(pokemonID)
 	-- https://github.com/pret/pokefirered/blob/d2c592030d78d1a46df1cba562a3c7af677dbf21/src/data/pokemon/level_up_learnsets.h
 	local LEVEL_UP_END = 0xFFFF
 	-- gLevelUpLearnsets is an array of addresses for all Pokémon species; each entry is a 4 byte address
-	local levelUpLearnsetPtr = Memory.readdword(GameSettings.gLevelUpLearnsets + (pokemonID * 4))
+	local levelUpLearnsetPtr = Memory.readdword(GameSettings.gLevelUpLearnsets + (pokemonID * PokemonData.Addresses.sizeofLevelUpLearnset))
 	for i=0, 99, 1 do -- MAX of 100 iterations, as a failsafe
 		-- Each entry is 2 bytes formatted as: #define LEVEL_UP_MOVE(lvl, move) ((lvl << 9) | move)
-		local levelUpMove = Memory.readword(levelUpLearnsetPtr + (i * 2))
+		local levelUpMove = Memory.readword(levelUpLearnsetPtr + (i * PokemonData.Addresses.sizeofLevelUpMove))
 		if levelUpMove == LEVEL_UP_END then
 			break
 		end
-		local moveId = Utils.getbits(levelUpMove, 0, 9)
-		local level = Utils.getbits(levelUpMove, 9, 7)
+		local moveId = Utils.getbits(levelUpMove, PokemonData.Addresses.offsetLevelUpMoveId, PokemonData.Addresses.sizeofLevelUpMoveId)
+		local level = Utils.getbits(levelUpMove, PokemonData.Addresses.offsetLevelUpMoveLv, PokemonData.Addresses.sizeofLevelUpMoveLv)
 		table.insert(learnedMoves, { id = moveId, level = level })
 	end
 	return learnedMoves
