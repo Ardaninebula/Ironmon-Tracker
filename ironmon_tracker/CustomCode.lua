@@ -420,7 +420,9 @@ function CustomCode.downloadAndInstallExtensionFiles(githubRepoUrl, folderNamesT
 	return true
 end
 
--- Simulates an interface-like function execution for custom code files
+---Simulates an interface-like function execution for custom code files
+---@param funcLabel string The name of the function (used for error logging)
+---@param ... any Optional parameters for the function
 function CustomCode.execFunctions(funcLabel, ...)
 	if not CustomCode.isEnabled() then return end
 
@@ -434,6 +436,11 @@ function CustomCode.execFunctions(funcLabel, ...)
 	end
 end
 
+---Executes an extension's function.
+---@param extensionKey string Usually the filename of the extension
+---@param functionLabel string The name of the function (used for error logging)
+---@param functToExec function The function itself
+---@return boolean success
 function CustomCode.tryExecute(extensionKey, functionLabel, functToExec)
 	CustomCode.extBeingExecuted = extensionKey
 	CustomCode.funcBeingExecuted = functionLabel
@@ -443,6 +450,8 @@ function CustomCode.tryExecute(extensionKey, functionLabel, functToExec)
 	return result
 end
 
+---Logs an error message
+---@param err any
 function CustomCode.logError(err)
 	err = tostring(err)
 	local errorMessage
@@ -455,6 +464,50 @@ function CustomCode.logError(err)
 	if not CustomCode.KnownErrors[errorMessage] then
 		CustomCode.KnownErrors[errorMessage] = true
 		FileManager.logError(errorMessage)
+	end
+end
+
+---Properly executes each extension's startup function, respecting any extension dependencies (cascade loading)
+function CustomCode.executeExtensionStartups()
+	if not CustomCode.isEnabled() then return end
+
+	local startedExtensionKeys = {}
+
+	local _tryStartupExtensions = function(extensionsToStartup)
+		local anyNewStarted = false
+		local skippedExtensions = {}
+		for _, ext in pairs(extensionsToStartup or {}) do
+			local allRequiredAreStarted = true
+			for _, requiredKey in pairs(ext.selfObject and ext.selfObject.requiredExtKeys or {}) do
+				if not Utils.isNilOrEmpty(requiredKey) and not startedExtensionKeys[requiredKey] then
+					allRequiredAreStarted = false
+					break
+				end
+			end
+			if allRequiredAreStarted then
+				startedExtensionKeys[ext.key] = true
+				anyNewStarted = true
+				-- Run its startup function
+				local functToExec = ext.selfObject and ext.selfObject["startup"]
+				if type(functToExec) == "function" then
+					CustomCode.tryExecute(ext.selfObject.name, "startup", functToExec)
+				end
+			else
+				table.insert(skippedExtensions, ext)
+			end
+		end
+		return anyNewStarted, skippedExtensions
+	end
+
+	-- Keep trying to startup extensions in a cascading fashion, until no new ones get started
+	local anyNewStarted = false
+	local unstartedExtensions = CustomCode.EnabledExtensions
+	for _ = 1, 999, 1 do
+		anyNewStarted, unstartedExtensions = _tryStartupExtensions(unstartedExtensions)
+		-- No new extensions were started, no need to keep trying
+		if not anyNewStarted or #unstartedExtensions == 0 then
+			break
+		end
 	end
 end
 
