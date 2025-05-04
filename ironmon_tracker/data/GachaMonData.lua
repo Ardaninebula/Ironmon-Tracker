@@ -411,7 +411,7 @@ function GachaMonData.calculateRatingScore(gachamon, baseStats)
 				iMoves[i].rating = iMoves[i].rating * rockheadBonus
 			end
 			if Utils.isSTAB(iMoves[i].move, iMoves[i].move.type, pokemonTypes) then
-				iMoves[i].rating = iMoves[i].rating * 1.5
+				iMoves[i].rating = iMoves[i].rating * (RS.OtherAdjustments.BonusMoveIsSTAB or 1)
 			end
 		end
 	end
