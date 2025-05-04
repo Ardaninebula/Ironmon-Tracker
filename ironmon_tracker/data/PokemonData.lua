@@ -19,7 +19,8 @@ PokemonData.Addresses = {
 	offsetLevelUpMoveId = 0x0,
 	offsetLevelUpMoveLv = 0x9,
 
-	sizeofExpYield = 1,
+	sizeofExpYield = 1, -- Number of bytes for the experience yield section
+	sizeofAbilityInBytes = 1, -- Number of bytes for ONE ability number (each Pokémon has two total)
 	sizeofLevelUpLearnset = 4,
 	sizeofLevelUpMove = 2,
 	sizeofLevelUpMoveId = 9,
@@ -263,20 +264,18 @@ function PokemonData.buildData(forced)
 			pokemon.catchRate = Memory.readbyte(addrOffset + PokemonData.Addresses.offsetCatchRate)
 
 			-- Exp Yield
-			if PokemonData.Addresses.sizeofExpYield == 2 then
-				pokemon.expYield = Memory.readword(addrOffset + PokemonData.Addresses.offsetExpYield)
-			else
-				pokemon.expYield = Memory.readbyte(addrOffset + PokemonData.Addresses.offsetExpYield)
-			end
+			local expReadFunc = PokemonData.Addresses.sizeofExpYield == 2 and Memory.readword or Memory.readbyte
+			pokemon.expYield = expReadFunc(addrOffset + PokemonData.Addresses.offsetExpYield)
 
 			-- Base Friendship (1 byte)
 			pokemon.friendshipBase = Memory.readbyte(addrOffset + PokemonData.Addresses.offsetBaseFriendship)
 
 			-- Abilities (2 bytes)
-			local abilitiesData = Memory.readword(addrOffset + PokemonData.Addresses.offsetAbilities)
+			local abilityReadFunc = PokemonData.Addresses.sizeofAbilityInBytes == 2 and Memory.readword or Memory.readbyte
+			local abilityAddr = addrOffset + PokemonData.Addresses.offsetAbilities
 			pokemon.abilities = {
-				Utils.getbits(abilitiesData, 0, 8),
-				Utils.getbits(abilitiesData, 8, 8),
+				abilityReadFunc(abilityAddr),
+				abilityReadFunc(abilityAddr + PokemonData.Addresses.sizeofAbilityInBytes)
 			}
 		end
 	end
