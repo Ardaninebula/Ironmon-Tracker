@@ -1,4 +1,6 @@
 GachaMonData = {
+	MIN_RATING = 0, -- Prevent underflow
+	MAX_RATING = 255, -- Prevent overflow
 	MIN_BATTLE_POWER = 1000,
 	MAX_BATTLE_POWER = 15000,
 	SHINY_ODDS = 0.004695, -- 1 in 213 odds. (Pokémon Go and Pokémon Sleep use ~1/500)
@@ -519,7 +521,16 @@ function GachaMonData.calculateRatingScore(gachamon, baseStats)
 	natureRating = math.min(natureRating, RS.CategoryMaximums.Nature or 999)
 	ratingTotal = ratingTotal + natureRating
 
-	return math.floor(ratingTotal + 0.5)
+	-- Round up
+	ratingTotal = math.floor(ratingTotal + 0.5)
+
+	if ratingTotal > GachaMonData.MAX_RATING then
+		return GachaMonData.MAX_RATING
+	elseif ratingTotal < GachaMonData.MIN_RATING then
+		return GachaMonData.MIN_RATING
+	else
+		return ratingTotal
+	end
 end
 
 ---Calculates the GachaMon's "Battle Power" based on its rating, STAB moves, nature, etc
