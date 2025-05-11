@@ -25,6 +25,8 @@ PokemonData.Addresses = {
 	sizeofLevelUpMove = 2,
 	sizeofLevelUpMoveId = 9,
 	sizeofLevelUpMoveLv = 7,
+
+	endFlagLevelUp = 0xFFFF
 }
 
 PokemonData.IsRand = {
@@ -227,6 +229,8 @@ function PokemonData.buildData(forced)
 	-- if not forced or someNonExistentCondition then -- Currently Unused/unneeded
 	-- 	return
 	-- end
+	local expReadFunc = Memory.getReadFunc(PokemonData.Addresses.sizeofExpYield)
+	local abilityReadFunc = Memory.getReadFunc(PokemonData.Addresses.sizeofAbilityInBytes)
 	for id = 1, PokemonData.getTotal(), 1 do
 		local pokemon = PokemonData.Pokemon[id] or PokemonData.BlankPokemon
 		pokemon.pokemonID = id
@@ -263,15 +267,13 @@ function PokemonData.buildData(forced)
 			--Catch Rate (1 byte)
 			pokemon.catchRate = Memory.readbyte(addrOffset + PokemonData.Addresses.offsetCatchRate)
 
-			-- Exp Yield
-			local expReadFunc = PokemonData.Addresses.sizeofExpYield == 2 and Memory.readword or Memory.readbyte
+			-- Exp Yield ([1] byte)
 			pokemon.expYield = expReadFunc(addrOffset + PokemonData.Addresses.offsetExpYield)
 
 			-- Base Friendship (1 byte)
 			pokemon.friendshipBase = Memory.readbyte(addrOffset + PokemonData.Addresses.offsetBaseFriendship)
 
-			-- Abilities (2 bytes)
-			local abilityReadFunc = PokemonData.Addresses.sizeofAbilityInBytes == 2 and Memory.readword or Memory.readbyte
+			-- Abilities ([2] bytes)
 			local abilityAddr = addrOffset + PokemonData.Addresses.offsetAbilities
 			pokemon.abilities = {
 				abilityReadFunc(abilityAddr),
@@ -591,20 +593,24 @@ function PokemonData.readLevelUpMoves(pokemonID)
 	if not PokemonData.isValid(pokemonID) then
 		return learnedMoves
 	end
+
 	-- https://github.com/pret/pokefirered/blob/d2c592030d78d1a46df1cba562a3c7af677dbf21/src/data/pokemon/level_up_learnsets.h
-	local LEVEL_UP_END = 0xFFFF
 	-- gLevelUpLearnsets is an array of addresses for all Pokémon species; each entry is a 4 byte address
 	local levelUpLearnsetPtr = Memory.readdword(GameSettings.gLevelUpLearnsets + (pokemonID * PokemonData.Addresses.sizeofLevelUpLearnset))
-	for i=0, 99, 1 do -- MAX of 100 iterations, as a failsafe
-		-- Each entry is 2 bytes formatted as: #define LEVEL_UP_MOVE(lvl, move) ((lvl << 9) | move)
-		local levelUpMove = Memory.readword(levelUpLearnsetPtr + (i * PokemonData.Addresses.sizeofLevelUpMove))
-		if levelUpMove == LEVEL_UP_END then
+	local levelUpReadFunc = Memory.getReadFunc(PokemonData.Addresses.sizeofLevelUpMove)
+
+	-- MAX of 100 iterations, as a failsafe
+	for i=0, 99, 1 do
+		-- Each entry is [2] bytes formatted as: #define LEVEL_UP_MOVE(lvl, move) ((lvl << 9) | move)
+		local levelUpMove = levelUpReadFunc(levelUpLearnsetPtr + (i * PokemonData.Addresses.sizeofLevelUpMove))
+		if levelUpMove == PokemonData.Addresses.endFlagLevelUp then
 			break
 		end
 		local moveId = Utils.getbits(levelUpMove, PokemonData.Addresses.offsetLevelUpMoveId, PokemonData.Addresses.sizeofLevelUpMoveId)
 		local level = Utils.getbits(levelUpMove, PokemonData.Addresses.offsetLevelUpMoveLv, PokemonData.Addresses.sizeofLevelUpMoveLv)
 		table.insert(learnedMoves, { id = moveId, level = level })
 	end
+
 	return learnedMoves
 end
 
